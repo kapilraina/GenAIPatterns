@@ -15,3 +15,6 @@
  ###### py -m pip install matplotlib
  ###### py -m pip install Rouge
  ###### py -m pip install ipywidgets
+ ###### py -m pip install ndg-httpsclient
+ ###### py -m pip install pyopenssl
+ ###### py -m pip install pyasn1

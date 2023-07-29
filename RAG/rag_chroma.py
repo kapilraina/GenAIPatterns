@@ -6,6 +6,7 @@ import chromadb
 from chromadb.config import Settings
 
 chroma_client = chromadb.PersistentClient(path="/tmp/cdb")
+#collection = chroma_client.get_collection("Books_Index001") # ST Embeddings
 collection = chroma_client.get_collection("Books_Index002")
 embeddingsmodel = SentenceTransformer('all-MiniLM-L6-v2')
 
