@@ -42,7 +42,7 @@ while True:
     #queryEmbedding = embedding_function(user_input)
     queryEmbedding = oai_embedding_function(user_input)
     query_response = pcindex.query(
-        top_k=10,
+        top_k=5,
         include_values=True,
         include_metadata=True,
         vector=queryEmbedding)
@@ -50,8 +50,6 @@ while True:
     print(scores);
     matchedVectors = list((map(lambda m: str(m['metadata']),query_response.matches)));
     augmentedQuery =  "".join(matchedVectors)    
-    
-    print(system_prompt_template(augmentedQuery))
     
     try:
         completion = openai.ChatCompletion.create(
