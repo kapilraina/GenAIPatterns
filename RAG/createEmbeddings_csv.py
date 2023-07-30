@@ -120,7 +120,7 @@ while True:
     
     #Get Embeddings from both models
     embeddings_st = embedding_function(embeddable.to_list())
-    embeddings_oai = oai_embedding_function(embeddable.to_list())
+    #embeddings_oai = oai_embedding_function(embeddable.to_list())
     ids_ = batch['bookId'].apply(lambda row: str(row)).tolist()
 
     collection_st.upsert(
@@ -129,14 +129,14 @@ while True:
         ids = ids_
     )
     
-    collection_oai.upsert(
-        embeddings = embeddings_oai,
-        metadatas = metadata.tolist(),
-        ids = ids_
-    )   
+    #collection_oai.upsert(
+    #    embeddings = embeddings_oai,
+    #    metadatas = metadata.tolist(),
+    #    ids = ids_
+    #)   
     
-    data=list(zip(ids_, embeddings_oai,metadata.tolist()))
-    pcindex.upsert(data)
+    #data=list(zip(ids_, embeddings_oai,metadata.tolist()))
+    #pcindex.upsert(data)
 
     t_= t_+ len(batch)
     p_ = str((round(t_/datalength*100,2)))

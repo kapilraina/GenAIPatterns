@@ -6,8 +6,8 @@ import chromadb
 from chromadb.config import Settings
 
 chroma_client = chromadb.PersistentClient(path="/tmp/cdb")
-#collection = chroma_client.get_collection("Books_Index001") # ST Embeddings
-collection = chroma_client.get_collection("Books_Index002")
+collection = chroma_client.get_collection("Books_Index001") # ST Embeddings
+#collection = chroma_client.get_collection("Books_Index002") # OAI Embeddings
 embeddingsmodel = SentenceTransformer('all-MiniLM-L6-v2')
 
 OPENAIKEY= os.environ.get('OPENAIKEY')
@@ -57,8 +57,8 @@ while True:
     user_input = input("Enter your query: ")
     if user_input == 'Q' or user_input == 'q':
         break
-    #queryEmbedding = embedding_function(user_input)
-    queryEmbedding = oai_embedding_function(user_input)
+    queryEmbedding = embedding_function(user_input)
+    #queryEmbedding = oai_embedding_function(user_input)
     query_response = collection.query(
         query_embeddings=queryEmbedding,
         n_results=10
