@@ -10,11 +10,13 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 ) 
+import businessfunctions
 
 persona_template = """
 You are {name}. {whoami} 
 {conversationwith} 
 {traits}
+Goal of this conversation for you: {goal}
 {conversationnavigator}
 Reply based on conversation history provided in 'Context:'
 Reply with prefix '{chatname}:'
@@ -30,10 +32,14 @@ def loadContext(persona):
     if persona['conversationnavigator']:
         cnav = conversationnavigator_template.format(chatname=persona['chatname'])
     
-    return persona_template.format(name=persona['name'],whoami=persona['whoami'],
-                                   conversationwith = persona['conversationwith'],
-                                   traits=persona['traits'],conversationnavigator=cnav,
-                                   chatname=persona['chatname'],responselength=persona['responselength'])
+    return persona_template.format(name=persona['name'],
+                                   whoami=persona['whoami'],
+                                   conversationwith=persona['conversationwith'],
+                                   traits=persona['traits'],
+                                   goal=persona['goal'],
+                                   conversationnavigator=cnav,
+                                   chatname=persona['chatname'],
+                                   responselength=persona['responselength'])
 
 #logging.basicConfig(filename='logs/app.log', level=logging.INFO)
 OPENAIKEY= os.environ.get('OPENAIKEY')
@@ -50,42 +56,53 @@ persona2Context = loadContext(persona2)
 
 print("Personas Loaded")
 
+
 conversationBuffer = []
 
 @retry(wait=wait_random_exponential(min=1, max=3), stop=stop_after_attempt(2))
 def completion_with_backoff(messages_):
     try:
 
-     completion = openai.ChatCompletion.create(
-                        model = "gpt-3.5-turbo",
-                        messages = messages_,
-                        temperature=1.5,
-                        max_tokens=50,
-                        stop="15.",
-                        #stream=True
-                        )
-     return completion.choices[0].message.content
+        completion = openai.ChatCompletion.create(
+                           model = "gpt-3.5-turbo",
+                           messages = messages_,
+                           temperature=1.5,
+                           max_tokens=50,
+                           stop="15.",
+                           functions = businessfunctions.functionsArr
+                           #stream=True
+                           )
+        responseMessage = completion.choices[0].message
+        if "function_call" not in responseMessage:
+            return responseMessage.content
+
+        function_name = responseMessage.function_call.name
+        function_arguments = responseMessage.function_call.arguments
+        function_arguments_json = json.loads(function_arguments)
+        func_ = getattr(businessfunctions,function_name)
+        return func_(function_arguments_json)       
+        
     except openai.error.APIError as e:
         print(f"OpenAI API returned an API Error: {e}")
-        pass
+        exit()
     except openai.error.APIConnectionError as e:
         print(f"Failed to connect to OpenAI API: {e}")
-        pass
+        exit()
     except openai.error.RateLimitError as e:
         print(f"OpenAI API request exceeded rate limit: {e}")
-        pass
+        exit()
 
 print("Get started as " + persona1['name'] + ". Start your conversation with "+ persona2['name'])
 p1_ = input(persona1['chatname']+": ")
 
-for x in range(20):
+for _ in range(20):
     #print(conversationBuffer)
     if len(conversationBuffer) > 8:
         conversationBuffer.pop(0)
         conversationBuffer.pop(1)
 
     if len(conversationBuffer) == 0:
-     conversationBuffer.append(persona1['chatname']+":"+ p1_[0:150]+"\n")  
+        conversationBuffer.append(persona1['chatname']+":" + p1_[:150] + "\n")
     messages = [
                 {"role": "system", "content": persona2Context},
                 {"role": "system", "content": "Context:\n"+"".join(conversationBuffer)},
@@ -93,7 +110,7 @@ for x in range(20):
               ]
     p2_ = completion_with_backoff(messages)
     print(p2_)
-    conversationBuffer.append(p2_[0:150]+"\n")
+    conversationBuffer.append(p2_[:150] + "\n")
     messages = [
                 {"role": "system", "content": persona1Context},
                 {"role": "system", "content": "Context:\n"+"".join(conversationBuffer)},
@@ -101,8 +118,8 @@ for x in range(20):
               ]
     p1_ = completion_with_backoff(messages)
     print(p1_)
-    conversationBuffer.append(p1_[0:150]+"\n")
-    time.sleep(2)
+    conversationBuffer.append(p1_[:150] + "\n")
+    time.sleep(3)
 print("End of Conversation")
 
 

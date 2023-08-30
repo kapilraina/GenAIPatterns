@@ -10,12 +10,13 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 ) 
+import businessfunctions
 
 persona_template = """
 You are {name}. {whoami} 
 {conversationwith} 
 {traits}
-{conversationnavigator}
+Goal of this conversation for you: {goal}
 Reply based on conversation history provided in 'Context:'
 Reply with prefix '{chatname}:'
 Respond with {responselength} words max.
@@ -23,9 +24,11 @@ When {chatname} wants to end conversation, send a token *STOP* back.
 """
 
 def loadContext(persona):
-    return persona_template.format(name = persona['bot']['name'],whoami = persona['bot']['whoami'],
+    return persona_template.format(name = persona['bot']['name'],
+                                   whoami = persona['bot']['whoami'],
                                    conversationwith = persona['bot']['conversationwith'],
                                    traits = persona['bot']['traits'],
+                                   goal=persona['bot']['goal'],
                                    chatname = persona['bot']['chatname'],
                                    responselength = persona['bot']['responselength'])
 
@@ -42,29 +45,39 @@ conversationBuffer = []
 @retry(wait=wait_random_exponential(min=1, max=5), stop=stop_after_attempt(2))
 def completion_with_backoff(messages_):
     try:
+        completion = openai.ChatCompletion.create(
+                           model = "gpt-3.5-turbo-16k",
+                           messages = messages_,
+                           temperature=1.5,
+                           max_tokens=50,
+                           stop="15.",
+                           functions = businessfunctions.functionsArr
+                           #stream=True
+                           )
+        responseMessage = completion.choices[0].message
+        if "function_call" not in responseMessage:
+            return responseMessage.content
 
-     completion = openai.ChatCompletion.create(
-                        model = "gpt-3.5-turbo",
-                        messages = messages_,
-                        temperature=1.75,
-                        max_tokens=50,
-                        stop="*STOP*",
-                        #stream=True
-                        )
-     return completion.choices[0].message.content
+        function_name = responseMessage.function_call.name
+        function_arguments = responseMessage.function_call.arguments
+        function_arguments_json = json.loads(function_arguments)
+        func_ = getattr(businessfunctions,function_name)
+        return func_(function_arguments_json)       
+        
     except openai.error.APIError as e:
         print(f"OpenAI API returned an API Error: {e}")
-        pass
+        exit()
     except openai.error.APIConnectionError as e:
         print(f"Failed to connect to OpenAI API: {e}")
-        pass
+        exit()
     except openai.error.RateLimitError as e:
         print(f"OpenAI API request exceeded rate limit: {e}")
-        pass
+        exit()
+
 
 print("Conversing as " + thebot['human']['name'] + ". Start your conversation with bot "+ thebot['bot']['name'] )
 
-for x in range(20):
+for _ in range(20):
     if len(conversationBuffer) > 10:
         conversationBuffer.pop(0)
         conversationBuffer.pop(1)
@@ -76,8 +89,8 @@ for x in range(20):
               ]
     p2_ = completion_with_backoff(messages)
     print(p2_)
-    conversationBuffer.append(thebot['human']['chatname']+":"+ p1_[0:150]+"\n")  
-    conversationBuffer.append(p2_[0:150]+"\n")
+    conversationBuffer.append(thebot['human']['chatname']+":" + p1_[:150] + "\n")
+    conversationBuffer.append(p2_[:150] + "\n")
     time.sleep(2)
 print("End of Conversation")
 
