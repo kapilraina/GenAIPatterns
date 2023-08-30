@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "chatname": {
+        "type": "string"
+      },
+      "whoami": {
+        "type": "string"
+      },
+      "conversationwith": {
+        "type": "string"
+      },
+      "traits": {
+        "type": "string"
+      },
+      "goal": {
+        "type": "string"
+      },
+      "responselength": {
+        "type": "integer"
+      },
+      "conversationnavigator": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "name",
+      "chatname",
+      "whoami",
+      "conversationwith",
+      "traits",
+      "goal",
+      "responselength"
+    ]
+  }

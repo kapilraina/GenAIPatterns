@@ -68,7 +68,7 @@ def completion_with_backoff(messages_):
                            messages = messages_,
                            temperature=1.5,
                            max_tokens=50,
-                           stop="15.",
+                           #stop="15.",
                            functions = businessfunctions.functionsArr
                            #stream=True
                            )
@@ -119,7 +119,7 @@ for _ in range(20):
     p1_ = completion_with_backoff(messages)
     print(p1_)
     conversationBuffer.append(p1_[:150] + "\n")
-    time.sleep(3)
+    time.sleep(4)
 print("End of Conversation")
 
 

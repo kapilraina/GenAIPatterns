@@ -50,7 +50,7 @@ def completion_with_backoff(messages_):
                            messages = messages_,
                            temperature=1.5,
                            max_tokens=50,
-                           stop="15.",
+                           #stop="15.",
                            functions = businessfunctions.functionsArr
                            #stream=True
                            )
