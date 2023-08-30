@@ -86,7 +86,6 @@ for _ in range(8):
                 {"role": "system", "content": "Context:\n"+"".join(conversationBuffer)},
                 {"role": "user", "content": thebot['human']['chatname']+":"+ p1_}
               ]
-    print(messages)
     p2_ = completion_with_backoff(messages)
     print(p2_)
     conversationBuffer.append(thebot['bot']['chatname']+":" + p1_[:150] + "\n")
