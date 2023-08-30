@@ -44,6 +44,7 @@ def loadContext(persona):
 #logging.basicConfig(filename='logs/app.log', level=logging.INFO)
 OPENAIKEY= os.environ.get('OPENAIKEY')
 openai.api_key = OPENAIKEY
+bot2botfunctionsenabled = os.environ.get('bot2botfunctionsenabled') 
 
 file_p1 = 'personas/'+os.environ.get('persona1definitionfile')
 file_p2 = 'personas/'+os.environ.get('persona2definitionfile')
@@ -62,22 +63,32 @@ conversationBuffer = []
 @retry(wait=wait_random_exponential(min=1, max=3), stop=stop_after_attempt(2))
 def completion_with_backoff(messages_):
     try:
-
-        completion = openai.ChatCompletion.create(
-                           model = "gpt-3.5-turbo",
-                           messages = messages_,
-                           temperature=1.5,
-                           max_tokens=50,
-                           #stop="15.",
-                           functions = businessfunctions.functionsArr
-                           #stream=True
-                           )
+        if bot2botfunctionsenabled:
+            completion = openai.ChatCompletion.create(
+                            model = "gpt-3.5-turbo",
+                            messages = messages_,
+                            temperature=1.2,
+                            max_tokens=50,
+                            #stop="15.",
+                            functions = businessfunctions.functionsArr
+                            #stream=True
+                            )
+        else:
+            completion = openai.ChatCompletion.create(
+                model = "gpt-3.5-turbo",
+                messages = messages_,
+                temperature=1.2,
+                max_tokens=50,
+                #stop="15.",
+                #stream=True
+                )
         responseMessage = completion.choices[0].message
         if "function_call" not in responseMessage:
             return responseMessage.content
 
         function_name = responseMessage.function_call.name
         function_arguments = responseMessage.function_call.arguments
+        #print(function_name,function_arguments)
         function_arguments_json = json.loads(function_arguments)
         func_ = getattr(businessfunctions,function_name)
         return func_(function_arguments_json)       
@@ -95,7 +106,7 @@ def completion_with_backoff(messages_):
 print("Get started as " + persona1['name'] + ". Start your conversation with "+ persona2['name'])
 p1_ = input(persona1['chatname']+": ")
 
-for _ in range(20):
+for _ in range(7):
     #print(conversationBuffer)
     if len(conversationBuffer) > 8:
         conversationBuffer.pop(0)

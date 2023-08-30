@@ -9,7 +9,7 @@ def processReturn(returnRequest):
     orderNumber = returnRequest['orderNumber']
     returnID = uuid.uuid4()
     return f"Return For {orderNumber} initiated successfully. Return Reference {returnID}"
-
+nofunctionsArr = []
 functionsArr = [
         {
             "name": "processRefund",

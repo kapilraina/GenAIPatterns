@@ -20,7 +20,6 @@ Goal of this conversation for you: {goal}
 Reply based on conversation history provided in 'Context:'
 Reply with prefix '{chatname}:'
 Respond with {responselength} words max.
-When {chatname} wants to end conversation, send a token *STOP* back.
 """
 
 def loadContext(persona):
@@ -39,7 +38,6 @@ openai.api_key = OPENAIKEY
 file_b = 'personas/'+os.environ.get('botdefinitionfile')
 thebot = json.load(open(file_b))
 botcontext = loadContext(thebot)
-
 conversationBuffer = []
 
 @retry(wait=wait_random_exponential(min=1, max=5), stop=stop_after_attempt(2))
@@ -50,7 +48,7 @@ def completion_with_backoff(messages_):
                            messages = messages_,
                            temperature=1.5,
                            max_tokens=50,
-                           #stop="15.",
+                           stop="15.",
                            functions = businessfunctions.functionsArr
                            #stream=True
                            )
@@ -77,7 +75,8 @@ def completion_with_backoff(messages_):
 
 print("Conversing as " + thebot['human']['name'] + ". Start your conversation with bot "+ thebot['bot']['name'] )
 
-for _ in range(20):
+for _ in range(8):
+    print("_")
     if len(conversationBuffer) > 10:
         conversationBuffer.pop(0)
         conversationBuffer.pop(1)
@@ -87,11 +86,12 @@ for _ in range(20):
                 {"role": "system", "content": "Context:\n"+"".join(conversationBuffer)},
                 {"role": "user", "content": thebot['human']['chatname']+":"+ p1_}
               ]
+    print(messages)
     p2_ = completion_with_backoff(messages)
     print(p2_)
-    conversationBuffer.append(thebot['human']['chatname']+":" + p1_[:150] + "\n")
+    conversationBuffer.append(thebot['bot']['chatname']+":" + p1_[:150] + "\n")
     conversationBuffer.append(p2_[:150] + "\n")
-    time.sleep(2)
+    time.sleep(3)
 print("End of Conversation")
 
 
