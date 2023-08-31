@@ -23,7 +23,7 @@ Reply with prefix '{chatname}:'
 Respond with {responselength} words max.
 """
 conversationnavigator_template = """
-{chatname} Scott keeps the conversations short and meaningful.
+{chatname} keeps the conversations short and meaningful.
 When {chatname} detects repetitive tone in conversation, Context: is ignored and changes the topic in response.
 """
 
@@ -65,34 +65,33 @@ def completion_with_backoff(messages_):
     try:
         if bot2botfunctionsenabled:
             completion = openai.ChatCompletion.create(
-                            model = "gpt-3.5-turbo",
+                            model = "gpt-3.5-turbo-16k",
                             messages = messages_,
-                            temperature=1.2,
-                            max_tokens=50,
+                            temperature=1.5,
+                            max_tokens=40,
                             #stop="15.",
                             functions = businessfunctions.functionsArr
                             #stream=True
                             )
         else:
             completion = openai.ChatCompletion.create(
-                model = "gpt-3.5-turbo",
+                model = "gpt-3.5-turbo-16k",
                 messages = messages_,
-                temperature=1.2,
-                max_tokens=50,
+                temperature=1.5,
+                max_tokens=40,
                 #stop="15.",
                 #stream=True
                 )
         responseMessage = completion.choices[0].message
         if "function_call" not in responseMessage:
             return responseMessage.content
-
         function_name = responseMessage.function_call.name
         function_arguments = responseMessage.function_call.arguments
         #print(function_name,function_arguments)
         function_arguments_json = json.loads(function_arguments)
         func_ = getattr(businessfunctions,function_name)
         return func_(function_arguments_json)       
-        
+
     except openai.error.APIError as e:
         print(f"OpenAI API returned an API Error: {e}")
         exit()
@@ -102,11 +101,13 @@ def completion_with_backoff(messages_):
     except openai.error.RateLimitError as e:
         print(f"OpenAI API request exceeded rate limit: {e}")
         exit()
+    except json.decoder.JSONDecodeError as e:
+        return responseMessage.content
 
 print("Get started as " + persona1['name'] + ". Start your conversation with "+ persona2['name'])
 p1_ = input(persona1['chatname']+": ")
 
-for _ in range(7):
+for _ in range(10):
     #print(conversationBuffer)
     if len(conversationBuffer) > 8:
         conversationBuffer.pop(0)
@@ -116,21 +117,27 @@ for _ in range(7):
         conversationBuffer.append(persona1['chatname']+":" + p1_[:150] + "\n")
     messages = [
                 {"role": "system", "content": persona2Context},
-                {"role": "system", "content": "Context:\n"+"".join(conversationBuffer)},
-                {"role": "user", "content": persona1['chatname']+":"+ p1_}
+                {"role": "system", "content": "\nContext:\n"+"".join(conversationBuffer)},
+                {"role": "user", "content": "Reply to this message from "+ persona1['chatname']+"\n"+ p1_}
               ]
-    p2_ = completion_with_backoff(messages)
-    print(p2_)
-    conversationBuffer.append(p2_[:150] + "\n")
+    p2_ = completion_with_backoff(messages)    
+    if p2_ != None:
+        print(p2_)
+        conversationBuffer.append(p2_[:150] + "\n")
+    time.sleep(2)
     messages = [
                 {"role": "system", "content": persona1Context},
-                {"role": "system", "content": "Context:\n"+"".join(conversationBuffer)},
-                {"role": "user", "content": persona2['chatname']+":"+ p2_}
+                {"role": "system", "content": "\nContext:\n"+"".join(conversationBuffer)},
+                {"role": "user", "content": "Reply to this message from " + persona2['chatname']+"\n"+ p2_}
               ]
     p1_ = completion_with_backoff(messages)
-    print(p1_)
-    conversationBuffer.append(p1_[:150] + "\n")
-    time.sleep(4)
+    if p1_ != None:
+        print(p1_)
+        conversationBuffer.append(p1_[:150] + "\n")  
+
+    time.sleep(2)
+    
+print("")
 print("End of Conversation")
 
 
